@@ -4,8 +4,8 @@ import { MarkdownTextSplitter } from "langchain/text_splitter";
 import { pipeline } from "@xenova/transformers";
 
 const supabase = createClient(
-  `${process.env.NEXT_PUBLIC_DATABASE}`,
-  `${process.env.NEXT_PUBLIC_DATABASE_KEY}`
+  `${process.env.NEXT_SUPABASE_URL}`,
+  `${process.env.NEXT_SUPABASE_KEY}`
 );
 
 export default async function setup_rag(

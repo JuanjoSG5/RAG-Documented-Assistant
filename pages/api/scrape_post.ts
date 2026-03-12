@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { crawlUrl } from '@/src/utils/crawler';
 
-const supabase = createClient(`${process.env.NEXT_PUBLIC_DATABASE}`, `${process.env.NEXT_PUBLIC_DATABASE_KEY}`)
+const supabase = createClient(`${process.env.NEXT_SUPABASE_URL}`, `${process.env.NEXT_SUPABASE_KEY}`)
 
 export default async function handler(req, res) {
     const { url, depth } = req.body;
