@@ -27,7 +27,7 @@ export default async function sendQuestion(req, res) {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${process.env.NEXT_PUBLIC_OPENROUTER_TOKEN}`,
+          Authorization: `Bearer ${process.env.NEXT_OPENROUTER_TOKEN}`,
           'X-Title': 'ChatbotApp',
           'Content-Type': 'application/json',
         },
