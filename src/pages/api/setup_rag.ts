@@ -1,12 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { createClient } from "@supabase/supabase-js";
 import { MarkdownTextSplitter } from "@langchain/textsplitters";
 import { pipeline } from "@xenova/transformers";
-
-const supabase = createClient(
-  `${process.env.NEXT_SUPABASE_URL}`,
-  `${process.env.NEXT_SUPABASE_KEY}`
-);
+import { supabase } from "@/src/utils/supabase";
 
 export default async function setup_rag(
   req: NextApiRequest,

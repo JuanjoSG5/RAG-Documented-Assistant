@@ -1,4 +1,4 @@
-import { Doc } from "@/src/types/doc";
+import { supabase } from "@/src/utils/supabase";
 
 export async function retrieve(queryEmb: number[], k = 3) {
   // Llamamos al Remote Procedure Call (RPC) de Supabase

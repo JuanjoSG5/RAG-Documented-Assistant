@@ -2,8 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { pipeline } from '@xenova/transformers';
 import { createClient } from '@supabase/supabase-js';
 import { retrieve } from '@/src/utils/embeddings';
-
-const supabase = createClient(`${process.env.NEXT_SUPABASE_URL}`, `${process.env.NEXT_SUPABASE_KEY}`);
+import { supabase } from '@/src/utils/supabase';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
