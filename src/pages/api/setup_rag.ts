@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
-import { MarkdownTextSplitter } from "langchain/text_splitter";
+import { MarkdownTextSplitter } from "@langchain/textsplitters";
 import { pipeline } from "@xenova/transformers";
 
 const supabase = createClient(
@@ -42,9 +42,11 @@ export default async function setup_rag(
       chunkOverlap: 200,
     });
 
-    const docs = await splitter.splitDocuments([
-      { pageContent: data.markdown, metadata: {} },
-    ]);
+    const chunks = await splitter.splitText(data.markdown);
+    const docs = chunks.map((chunk, index) => ({
+      pageContent: chunk,
+      metadata: { chunk: index },
+    }));
     console.log(`Split into ${docs.length} chunks`);
 
     // Initialize Xenova pipeline for embeddings
