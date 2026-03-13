@@ -1,16 +1,17 @@
 import { Doc } from "@/src/types/doc";
 
-function cosineSimilarity(a: number[], b: number[]): number {
-  const dot = a.reduce((sum, v, i) => sum + v * b[i], 0);
-  const normA = Math.sqrt(a.reduce((sum, v) => sum + v*v, 0));
-  const normB = Math.sqrt(b.reduce((sum, v) => sum + v*v, 0));
-  return dot / (normA * normB);
-}
+export async function retrieve(queryEmb: number[], k = 3) {
+  // Llamamos al Remote Procedure Call (RPC) de Supabase
+  const { data, error } = await supabase.rpc('match_documents', {
+    query_embedding: queryEmb,
+    match_count: k
+  });
 
-export function retrieve(docs: Doc[], queryEmb: number[], k = 3): Doc[] {
-  return docs
-    .map(doc => ({ doc, score: cosineSimilarity(doc.embedding, queryEmb) }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, k)
-    .map(item => item.doc);
+  if (error) {
+    console.error("Error retrieving documents:", error);
+    return[];
+  }
+
+  // data ya viene ordenado y solo trae los K mejores resultados
+  return data; 
 }
