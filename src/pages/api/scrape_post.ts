@@ -2,11 +2,11 @@ import { crawlUrl } from '@/src/utils/crawler';
 import { supabase } from '@/src/utils/supabase';
 
 export default async function handler(req, res) {
-    const { url, depth } = req.body;
+    const { url } = req.body;
   
     try {
       console.log("Received URL:", url);
-      const response = await crawlUrl(url, depth);
+      const response = await crawlUrl(url);
       for (let i in response["data"]){
         console.log("Element:", i);
       

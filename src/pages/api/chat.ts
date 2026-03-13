@@ -27,8 +27,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const queryEmb = Array.from(qOut.data);
     
     // Retrieve similar docs
-    const topDocs = retrieve(docs, queryEmb);
-    const contextText = topDocs.map(d => `Source [${d.id}]:\n${d.text}`).join('\n\n');
+    const topDocs = await retrieve(docs ?? []);
+    const contextText = Array.isArray(topDocs)
+      ? topDocs.map(d => `Source [${d.id}]:\n${d.text}`).join('\n\n')
+      : '';
     
 
     // Call OpenRouter API
