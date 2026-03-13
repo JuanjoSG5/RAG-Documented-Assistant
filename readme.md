@@ -116,4 +116,3 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 - **Why Firecrawl?** Traditional scrapers (like Puppeteer or Cheerio) struggle with dynamic SPAs and return messy HTML. Firecrawl directly outputs clean, markdown-formatted data perfectly suited for LLM context windows.
 - **Why Xenova / Transformers.js?** By generating embeddings locally via ONNX rather than calling external APIs (like OpenAI's `text-embedding-ada-002`), we drastically reduce API costs and network latency during the ingestion phase.
-```

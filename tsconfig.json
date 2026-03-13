@@ -6,7 +6,7 @@
         "./*"
       ]
     },
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "target": "ES2017",
     "lib": [
       "dom",
@@ -34,8 +34,10 @@
     "next-env.d.ts",
     ".next/types/**/*.ts",
     "**/*.ts",
-    "**/*.tsx"
-, "pages/_app.jsx"  ],
+    "**/*.tsx",
+    "src/pages/_app.jsx",
+    ".next/dev/types/**/*.ts"
+  ],
   "exclude": [
     "node_modules"
   ]
