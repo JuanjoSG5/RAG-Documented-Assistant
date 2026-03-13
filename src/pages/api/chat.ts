@@ -27,12 +27,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const queryEmb = Array.from(qOut.data);
     
     // Retrieve similar docs
-    const topDocs = await retrieve(docs ?? []);
+    const topDocs = await retrieve(queryEmb);
     const contextText = Array.isArray(topDocs)
       ? topDocs.map(d => `Source [${d.id}]:\n${d.text}`).join('\n\n')
       : '';
     
-
     // Call OpenRouter API
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
