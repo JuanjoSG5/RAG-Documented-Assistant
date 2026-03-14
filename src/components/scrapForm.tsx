@@ -28,8 +28,8 @@ const ScraperForm = () => {
   };
 
   return (
-    <form className="flex flex-col flex-wrap content-center " onSubmit={handleSubmit} >
-      <h2 className="text-2xl font-semibold my-4">Add Content to Knowledge Base</h2>
+    <form className="flex flex-col flex-wrap content-center bg-white p-6 rounded-lg shadow-md border border-gray-200" onSubmit={handleSubmit} >
+      <h2 className="text-2xl font-semibold my-4">1. Train your AI Assistant</h2>
       <div className="flex flex-col items-center">
         <CustomInput id="urlInput" text="Website URL" value={url} setValue={setUrl} />
 

@@ -4,13 +4,14 @@ import TextBox from "@/src/components/textBox";
 import CloseIcon from "./icons/closeIcon";
 
 const Chatbot = () => {
-  const [messages, setMessages] = useState([
-    { role: "system", content: "You are a helpful assistant." },
+ const[messages, setMessages] = useState([
+    { 
+      role: "assistant", 
+      content: "Hi! I am your AI Assistant. Once you train me with a website, you can ask me anything about it." },
   ]);
-  const [input, setInput] = useState("");
+  const[input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [isSetupComplete, setIsSetupComplete] = useState(false);
-  const [hidden, setHidden] = useState(true);
 
   useEffect(() => {
     const initializeRag = async () => {
@@ -19,7 +20,6 @@ const Chatbot = () => {
         const data = await response.json();
         if (data.success) {
           setIsSetupComplete(true);
-          console.log("RAG setup successful");
         }
       } catch (error) {
         console.error("Failed to initialize RAG:", error);
@@ -29,11 +29,9 @@ const Chatbot = () => {
     initializeRag();
   }, []);
 
-  const onClick = () => {
-    setHidden(!hidden);
-  };
-
   const handleSend = async () => {
+
+    // check the if there is any input and if the setup has finished
     if (!input.trim() || !isSetupComplete) return;
 
     const newMessages = [...messages, { role: "user", content: input }];
@@ -50,13 +48,12 @@ const Chatbot = () => {
       const data = await res.json();
 
       if (data.reply) {
-        const assistantMessage = {
-          role: data.reply.role || "assistant",
-          content: data.reply.content || String(data.reply),
-        };
-
-        setMessages([...newMessages, assistantMessage]);
-        console.log("Received message:", data.reply);
+        setMessages([
+          ...newMessages, 
+          {
+            role: data.reply.role || "assistant",
+            content: data.reply.content || String(data.reply),
+          }]);
       } else {
         setMessages([
           ...newMessages,
@@ -65,7 +62,6 @@ const Chatbot = () => {
             content: "Sorry, I couldn't process your request.",
           },
         ]);
-        console.error("No reply received from API:", data);
       }
     } catch (err) {
       console.error("Error fetching reply:", err);
@@ -78,35 +74,38 @@ const Chatbot = () => {
     }
   };
 
-  return (
-    <>
-      {!hidden ? (
-        <div className="fixed bottom-4 right-4 flex flex-col gap-2 p-4 w-[350px] h-[525px] bg-white border border-gray-300 rounded-lg shadow-lg">
-          <div className="flex justify-between items-center text-2xl">
-            AI Assistant
-            <span>
-              <CloseIcon onClick={onClick} />
-            </span>
-          </div>
-          <Chat messages={messages} loading={loading} />
+   return (
+    <div className="flex flex-col bg-white border border-slate-200 rounded-2xl shadow-sm h-[600px] overflow-hidden">
+      {/* Header del Chat */}
+      <div className="bg-slate-900 px-6 py-4 border-b border-slate-200">
+        <h2 className="text-lg font-bold text-white flex items-center gap-2">
+          <span className="relative flex h-3 w-3">
+            <span className={isSetupComplete ? "animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" : "hidden"}></span>
+            <span className={`relative inline-flex rounded-full h-3 w-3 ${isSetupComplete ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
+          </span>
+          Live Assistant
+        </h2>
+        <p className="text-slate-400 text-xs mt-1">
+          {isSetupComplete ? "RAG Engine Ready" : "Initializing Vector Store..."}
+        </p>
+      </div>
 
-          <TextBox
-            input={input}
-            setInput={setInput}
-            handleSend={handleSend}
-            isSetupComplete={isSetupComplete}
-            loading={loading}
-          />
-        </div>
-      ) : (
-        <button
-          onClick={onClick}
-          className="fixed z-[1000] bottom-[3vh] right-[3vw]"
-        >
-          <img className="size-18" src="logo.png" alt="Chat with the AI" />
-        </button>
-      )}
-    </>
+      {/* Ventana de mensajes */}
+      <div className="flex-1 overflow-y-auto bg-slate-50 p-4">
+        <Chat messages={messages} loading={loading} />
+      </div>
+
+      {/* Input */}
+      <div className="p-4 bg-white border-t border-slate-100">
+        <TextBox
+          input={input}
+          setInput={setInput}
+          handleSend={handleSend}
+          isSetupComplete={isSetupComplete}
+          loading={loading}
+        />
+      </div>
+    </div>
   );
 };
 
