@@ -76,7 +76,13 @@ create table documents (
   id bigserial primary key,
   content text,
   metadata jsonb,
-  embedding vector(384) -- Ensure dimensions match your Xenova model output
+  embedding vector(384) 
+);
+
+create table articles (
+  id bigserial primary key,
+  markdown text,
+  created_at timestamp with time zone default timezone('utc'::text, now())
 );
 
 -- Create a function to search for documents

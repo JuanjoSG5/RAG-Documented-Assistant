@@ -17,14 +17,21 @@ export default async function setup_rag(
       .select("markdown")
       .order("created_at", { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle(); // Using maybe single since the database more than likely will be empty at some point
 
     if (error) {
       console.error("Supabase fetch error:", error);
-      console.log("DATA::", data);
       throw error;
     }
     
+    // Checking if the database is empty 
+    if (!data || !data.markdown) {
+      console.log("No markdown content found yet. Waiting for user to scrape.");
+      // Devolvemos 200 para que no salga error rojo, pero success false para que el chat espere
+      return res.status(200).json({ success: false, message: "No documents to index yet" });
+    }
+
+    console.log("Markdown fetched successfully, length:", data.markdown.length);
     console.log("Markdown fetched successfully, length:", data?.markdown?.length);
     if (!data?.markdown) {
       throw new Error("No markdown content found");
