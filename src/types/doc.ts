@@ -1,5 +1,6 @@
 export interface Doc {
-  id: string;
-  text: string;
+  id?: string;
+  content: string;
+  metadata: Record<string, unknown>;
   embedding: number[];
 }

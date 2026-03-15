@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { MarkdownTextSplitter } from "@langchain/textsplitters";
 import { pipeline } from "@xenova/transformers";
 import { supabase } from "@/src/utils/supabase";
+import { Doc } from "@/src/types/doc";
 
 export default async function setup_rag(
   req: NextApiRequest,
@@ -62,7 +63,7 @@ export default async function setup_rag(
       
       // Process in smaller batches to avoid memory issues
       console.log("Generating embeddings for chunks...");
-      const processedDocs: Array<{ id: string; text: string; embedding: any[] }> = [];
+      const processedDocs: Array<Doc> = [];
       
       for (let i = 0; i < docs.length; i++) {
         const doc = docs[i];
@@ -85,8 +86,9 @@ export default async function setup_rag(
           const embedding = Array.from(output.data);
           
           processedDocs.push({
-            id: `doc-${i}`,
-            text: doc.pageContent,
+            // Borramos el 'id' para que Supabase lo auto-genere (1, 2, 3...)
+            content: doc.pageContent, // ⬅️ CAMBIO CLAVE: se llama 'content'
+            metadata: { chunk: i },   // ⬅️ Guardamos el número de trozo por si acaso
             embedding: embedding,
           });
         } catch (chunkError) {
@@ -105,7 +107,7 @@ export default async function setup_rag(
       console.log("Storing documents in Supabase...");
       const { error: insertError } = await supabase
         .from("documents")
-        .upsert(processedDocs);
+        .insert(processedDocs);
 
       if (insertError) {
         console.error("Supabase insert error:", insertError);
