@@ -7,10 +7,9 @@
 
 > An advanced Retrieval-Augmented Generation (RAG) system capable of dynamic web scraping, document ingestion, and context-aware Q&A using LangChain.js and Vector Databases.
 
-**Live Demo:** [Insert Vercel/Live URL here if you have one, or delete this line]
+**Live Demo:** Currently not available, I am currently remaking this project to make it more user friendly
 
 ![App Screenshot](./public/demo-screenshot.png) 
-*(Note: Please add a screenshot of your chat interface here)*
 
 ## Overview
 
