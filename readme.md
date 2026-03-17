@@ -5,44 +5,53 @@
 [![LangChain](https://img.shields.io/badge/LangChain-1C3C3C?style=for-the-badge&logo=langchain&logoColor=white)]()
 [![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)]()
 
-> An advanced Retrieval-Augmented Generation (RAG) system capable of dynamic web scraping, document ingestion, and context-aware Q&A using LangChain.js and Vector Databases.
+> A Retrieval-Augmented Generation (RAG) application that ingests web pages and documents to provide context-aware LLM responses, built to reduce AI hallucinations.
 
-**Live Demo:** Currently not available, I am currently remaking this project to make it more user friendly
+**Live Demo:** Currently building V2 with an improved UI/UX! 🚧
 
 ![App Screenshot](./public/demo-screenshot.png) 
 
 ## Overview
 
-This project was built to explore and implement modern AI engineering patterns. It acts as an intelligent assistant that can ingest external knowledge (via URLs or documents), process the information into high-dimensional vectors, and generate highly accurate responses to user queries while significantly reducing LLM hallucinations.
+This project is a functional MVP of an intelligent document assistant. It allows users to input URLs or text, processes that data into vector embeddings, and uses semantic search to answer questions strictly based on the provided context. 
 
-## Architecture & Data Flow
+The goal of this application is to demonstrate a complete AI data pipeline: from raw data ingestion and chunking to vector storage and prompt injection.
 
-The system follows a strict Clean Architecture pattern for AI data pipelines:
+## System Architecture
 
-
+The pipeline is designed to be efficient and modular:
 
 ```mermaid
    graph TD;
     A[User Input / URL] -->|Firecrawl API| B(Document Ingestion & Scraping)
     B -->|LangChain.js| C(Text Splitter / Chunking)
-    C -->|Transformers.js / Xenova| D(Embedding Generation)
+    C -->|Transformers.js / Xenova| D(Local Embedding Generation)
     D -->|pgvector| E[(Supabase Vector Store)]
     
     F[User Question] --> G(Generate Query Embedding)
     G -->|Similarity Search| E
-    E -->|Top K Context| H(Prompt Injection)
+    E -->|Top Context| H(Prompt Injection)
     H -->|OpenRouter / Gemini| I[LLM Response]
     I --> J[Next.js Frontend]
 ```
 
-## Core Technologies
+## Tech Stack
 
 - **Frontend & API:** Next.js (App Router), React, TypeScript, TailwindCSS.
-- **AI Orchestration:** `LangChain.js` for managing the RAG pipeline, prompts, and document loaders.
-- **Data Ingestion:** `Firecrawl` API for robust, LLM-ready web scraping (bypassing anti-bot protections and parsing JS-heavy sites).
-- **Embeddings:** `@xenova/transformers` running local models via ONNX runtime for efficient, low-latency embedding generation.
-- **Vector Database:** `Supabase` utilizing the `pgvector` extension for storing and performing cosine similarity searches.
-- **LLM Provider:** OpenRouter / Gemini API for final response generation.
+- **AI Orchestration:** `LangChain.js`.
+- **Data Ingestion:** `Firecrawl` API.
+- **Embeddings:** `@xenova/transformers`.
+- **Vector Database:** `Supabase` + `pgvector`.
+- **LLM Provider:** OpenRouter / Gemini API.
+
+## Technical Decisions & Trade-offs
+
+When building this MVP, I focused on optimizing for cost, data quality, and privacy:
+
+- **Handling Dynamic Content:** Traditional scrapers (Puppeteer/Cheerio) return messy HTML and struggle with Single Page Applications. I implemented **Firecrawl** because it easily handles JS-heavy sites and outputs clean Markdown, which drastically improves the LLM's reading comprehension.
+- **Local vs. API Embeddings:** Instead of relying on paid APIs (like OpenAI's `text-embedding-ada-002`), I integrated `@xenova/transformers` to generate embeddings locally using ONNX. **Trade-off:** It requires a bit more processing power on the server/client, but it completely eliminates embedding API costs and reduces network latency during ingestion.
+- **BYOD (Bring Your Own Database):** To avoid the complexity and cost of managing a multi-tenant vector database, the app is designed so users can connect their own Supabase instance. This ensures user data privacy while keeping the application lightweight.
+
 
 ## Getting Started
 
@@ -116,8 +125,3 @@ npm install
 npm run dev
 ```
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-## 🧠 Engineering Decisions
-
-- **Why Firecrawl?** Traditional scrapers (like Puppeteer or Cheerio) struggle with dynamic SPAs and return messy HTML. Firecrawl directly outputs clean, markdown-formatted data perfectly suited for LLM context windows.
-- **Why Xenova / Transformers.js?** By generating embeddings locally via ONNX rather than calling external APIs (like OpenAI's `text-embedding-ada-002`), we drastically reduce API costs and network latency during the ingestion phase.
