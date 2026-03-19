@@ -2,46 +2,30 @@ import { crawlUrl } from '@/src/utils/crawler';
 import { supabase } from '@/src/utils/supabase';
 
 export default async function handler(req: any, res: any) {
-    // Aceptamos url y depth desde el front (por defecto 1 si no viene)
-    const { url } = req.body; 
+    const { url, depth } = req.body; 
   
     try {
       console.log(`Starting scrape for URL: ${url}`);
       
-      // El "as any" le dice a TypeScript: "Tranquilo, yo me encargo, confía en mí"
-      const response = await crawlUrl(url) as any; 
+      const response = await crawlUrl(url, depth) as any; 
       
       let markdownText = "";
 
-      // Caso 1: Devuelve un solo documento directamente
-      if (response && response.markdown) {
-          markdownText = response.markdown;
-      } 
-      // Caso 2: El formato antiguo (1 documento dentro de data)
-      else if (response && response.data && response.data.markdown) {
-          markdownText = response.data.markdown;
-      } 
-      // Caso 3: Devuelve un array de documentos directamente (Crawl de varias páginas)
-      else if (Array.isArray(response) && response.length > 0) {
+      if (Array.isArray(response) && response.length > 0) {
           markdownText = response.map((item: any) => item.markdown).join("\n\n---\n\n");
       } 
-      // Caso 4: El formato antiguo (Array dentro de data)
-      else if (response && Array.isArray(response.data)) {
-          markdownText = response.data.map((item: any) => item.markdown).join("\n\n---\n\n");
-      }
 
       if (!markdownText) {
-         console.error("Firecrawl no devolvió markdown válido. Respuesta cruda:", response);
-         return res.status(400).json({ message: "No se pudo extraer texto de esta URL" });
+         console.error("Error: No markdown text extracted.", response);
+         return res.status(400).json({ message: "No markdown text extracted." });
       }
 
-      console.log(`Markdown extraído con éxito. Longitud: ${markdownText.length} caracteres.`);
+      console.log(`Markdown text extracted, length: ${markdownText.length} characters.`);
 
-      // Insertamos en Supabase en la tabla articles
       const { error } = await supabase.from("articles").insert({ markdown: markdownText });
       
       if (error) {
-          console.error("Error insertando en Supabase:", error);
+          console.error("Error inserting in Supabase:", error);
           throw error;
       }
       

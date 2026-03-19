@@ -14,7 +14,7 @@ const ScraperForm = () => {
     const res = await fetch("/api/scrape_post", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url }),
+      body: JSON.stringify({ url, depth}),
     });
     const data = await res.json();
     if (!res.ok) {
