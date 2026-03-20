@@ -1,4 +1,4 @@
-import { MarkdownTextSplitter } from "@langchain/textsplitters";
+import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { Chroma } from "@langchain/community/vectorstores/chroma";
 import { StringOutputParser } from "@langchain/core/output_parsers";
@@ -6,19 +6,21 @@ import { OpenAI } from '@langchain/openai';
 import { PromptTemplate } from "@langchain/core/prompts";
 
 export async function setupRag(markdown: string) {
-  if (!markdown) {
-    throw new Error("Markdown content is required");
-  }
+  // 1. Limpieza básica: Asegura que el Markdown tenga saltos de línea consistentes
+  const cleanMarkdown = markdown.replace(/\r\n/g, '\n');
 
-  // Split the markdown into chunks
-  const splitter = new MarkdownTextSplitter({ 
-    chunkSize: 1000, 
-    chunkOverlap: 200 
+  const textSplitter = new RecursiveCharacterTextSplitter({
+    chunkSize: 1500,
+    chunkOverlap: 300,
+    // Definimos el orden en que queremos dividir el texto
+    separators: ["\n# ", "\n## ", "\n### ", "\n\n", "\n", " "],
   });
   
-  const docs = await splitter.splitDocuments([
-    { pageContent: markdown, metadata: {} }
-  ]);
+  // splitText devuelve un array de objetos Document
+  const headerDocs = await textSplitter.createDocuments([cleanMarkdown]);
+
+  
+  const docs = await textSplitter.splitDocuments(headerDocs);
 
   // Create vector store + retriever
   const vectorStore = await Chroma.fromDocuments(
@@ -27,7 +29,7 @@ export async function setupRag(markdown: string) {
     { collectionName: "demo-collection" }
   );
 
-  const retriever = vectorStore.asRetriever();  // [!code ++]
+  const retriever = vectorStore.asRetriever();
 
   const promptTemplate = PromptTemplate.fromTemplate(`
     You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. 
@@ -37,7 +39,7 @@ export async function setupRag(markdown: string) {
     Answer:
   `);
 
-  // Modern Runnable chain - replaces createStuffDocumentsChain
+  // Modern Runnable chain
   const model = new OpenAI({
     modelName: process.env.OPENROUTER_MODEL_NAME,
     openAIApiKey: process.env.OPENROUTER_API_KEY,

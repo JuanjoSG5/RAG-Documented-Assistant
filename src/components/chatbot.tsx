@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Chat from "@/src/components/chat";
 import TextBox from "@/src/components/textBox";
-import CloseIcon from "./icons/closeIcon";
 
 const Chatbot = () => {
  const[messages, setMessages] = useState([

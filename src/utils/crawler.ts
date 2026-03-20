@@ -1,4 +1,4 @@
-export async function crawlUrl(startUrl: string, depth: number) {
+export async function crawlUrl(startUrl: string, depth: number, onProgress?: (msg: string) => void) {
     const queue: string[] = [startUrl]; 
     const visited: Set<string> = new Set([startUrl]); 
     const docs: any[] = [];
@@ -12,7 +12,11 @@ export async function crawlUrl(startUrl: string, depth: number) {
         const currentUrl = queue.shift()!;
         
         try {
-            console.log(`📄 Scrapping (${docs.length + 1}/${depth}): ${currentUrl}`);
+            const progress = `Scrapping (${docs.length + 1}/${depth}): ${currentUrl}`;
+            console.log(progress);
+
+            // We can call the onProgress callback to update the UI with the current progress
+            if (onProgress) onProgress(progress);
             
             
             const response = await fetch(`https://r.jina.ai/${currentUrl}`, {

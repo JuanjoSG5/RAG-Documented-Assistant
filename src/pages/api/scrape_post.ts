@@ -1,13 +1,24 @@
 import { crawlUrl } from '@/src/utils/crawler';
 import { supabase } from '@/src/utils/supabase';
+import { send } from 'node:process';
 
 export default async function handler(req: any, res: any) {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Cache-Control', 'no-cache'); 
+    res.setHeader('Connection', 'keep-alive'); 
+
     const { url, depth } = req.body; 
+
+    // This is the event to send progress updates to the client
+    const sendEvent = (type: string, data: any) => {
+      res.write(`${JSON.stringify({ type, ...data })}\n`);
+    }
   
     try {
       console.log(`Starting scrape for URL: ${url}`);
+      sendEvent('progress', { message: `Starting scrape for ${url}` });
       
-      const response = await crawlUrl(url, depth) as any; 
+      const response = await crawlUrl(url, depth, (msg) => sendEvent('progress', { message: msg })) as any; 
       
       let markdownText = "";
 
@@ -17,6 +28,7 @@ export default async function handler(req: any, res: any) {
 
       if (!markdownText) {
          console.error("Error: No markdown text extracted.", response);
+         sendEvent('error', { message: "No markdown text extracted." });
          return res.status(400).json({ message: "No markdown text extracted." });
       }
 
@@ -29,10 +41,12 @@ export default async function handler(req: any, res: any) {
           throw error;
       }
       
-      res.status(200).json({ message: "Scraped and saved successfully!" });
+      sendEvent('end', { message: "Scraped and saved successfully!" });
+      res.end();
       
     } catch (err: any) {
       console.error("Error crítico en scrape_post:", err);
+      sendEvent('error', { message: "Failed", error: err.message });
       res.status(500).json({ message: "Failed", error: err.message });
     }
 }
