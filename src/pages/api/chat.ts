@@ -5,6 +5,11 @@ import { ChatOpenAI } from '@langchain/openai';
 import { PromptTemplate } from "@langchain/core/prompts";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 
+
+const HISTORY_LIMIT = 6; 
+const SUPABASE_MATCH_COUNT = 3; // Selects the n more relevant chunks from the database
+
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -12,47 +17,67 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!question) return res.status(400).json({ error: 'Question is required' });
 
   try {
-    // 1. Convertimos la pregunta del usuario en un Vector usando Xenova (Igual que en setup_rag)
+    // 1. Recover the previous chat memory
+    const { data: historyData } = await supabase
+      .from('chat_history')
+      .select('role, content')
+      .order('created_at', { ascending: false })
+      .limit(HISTORY_LIMIT);
+
+    // Sort the data
+    const sortedHistory = historyData
+      // The last .join is done so that the sortedHistory is a string rather than a []
+      ? historyData.reverse().map(message => `${message.role.toUpperCase()}: ${message.content}`).join("\n")
+      : "No previous history.";
+
+    // Create the vectorization of the question 
     const extractor = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2");
     const output = await extractor(question, { pooling: "mean", normalize: true });
     const queryEmbedding = Array.from(output.data);
 
-    // 2. Buscamos en Supabase los trozos de texto más parecidos (Similitud del Coseno)
-    // Asegúrate de tener la función 'match_documents' creada en el SQL de Supabase
+    // Search most relevant chunks
     const { data: documents, error: searchError } = await supabase.rpc('match_documents', {
       query_embedding: queryEmbedding,
-      match_count: 3 // Cogemos los 3 trozos más relevantes
+      match_count: SUPABASE_MATCH_COUNT
     });
 
     if (searchError) throw searchError;
 
-    // 3. Juntamos los textos encontrados para crear el "Contexto"
+    //  Join the found chunks to pass as context 
     const contextText = documents ? documents.map((doc: any) => doc.content || doc.text).join("\n\n") : "";
 
-    // 4. Preparamos a LangChain y al LLM (OpenRouter)
+    // LLM Prompt 
     const promptTemplate = PromptTemplate.fromTemplate(`
-      You are a helpful assistant. Use the following pieces of retrieved context to answer the question. 
+      You are a helpful assistant. Use the following pieces of retrieved CONTEXT and the CONVERSATION HISTORY to answer the QUESTION. 
       If the answer is not in the context, just say that you don't know based on the provided website. 
       Keep the answer concise.
       
-      Context: {context} 
+      CONVERSATION HISTORY:
+      {history}
+
+      CONTEXT: 
+      {context} 
       
-      Question: {question} 
-      Answer:
+      QUESTION: {question} 
+      ANSWER:
     `);
 
     const apiKey = process.env.NEXT_OPENROUTER_TOKEN;
     if (!apiKey) {
-      throw new Error("🚨 ERROR: NEXT_OPENROUTER_TOKEN no está definida en el .env.local");
+      throw new Error("🚨 ERROR: NEXT_OPENROUTER_TOKEN is not defined on .env file");
     }
 
+    
     const model = new ChatOpenAI({
-      modelName: process.env.NEXT_OPENROUTER_MODEL_NAME, // O el modelo que uses
-      apiKey: apiKey, // Usamos apiKey directamente
+      modelName: process.env.NEXT_OPENROUTER_MODEL_NAME, 
+      apiKey: apiKey,
+      // If you are going to use paid models you can uncomment the line below to set a token limit,
+      // since I am using a free model for testing I will leave this here
+      // maxTokens: 500,
       configuration: { 
         baseURL: "https://openrouter.ai/api/v1",
         defaultHeaders: {
-          "HTTP-Referer": "http://localhost:3000", // OpenRouter a veces pide esto
+          "HTTP-Referer": "http://localhost:3000",
           "X-Title": "ChatbotApp"
         }
       },
@@ -60,13 +85,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const chain = promptTemplate.pipe(model).pipe(new StringOutputParser());
 
-    // 5. ¡Ejecutamos la magia!
+    // We send the message to the LLM
     const responseText = await chain.invoke({
       question: question,
-      context: contextText
+      context: contextText,
+      history: sortedHistory
     });
 
-    // 6. Devolvemos la respuesta al frontend
+    await supabase.from('chat_history').insert([
+      { role: 'user', content: question },
+      { role: 'assistant', content: responseText}
+    ])
+
     res.status(200).json({ 
       reply: { role: "assistant", content: responseText } 
     });

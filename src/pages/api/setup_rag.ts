@@ -11,6 +11,18 @@ export default async function setup_rag(
   try {
     console.log("RAG setup started");
   
+
+    // We check if the index has been built
+    const { count, error: countError } = await supabase
+      .from("documents")
+      .select('*', { count: 'exact', head: true });
+
+    // if it has we stop the process to build it
+    if (count && count > 0) {
+      console.log(`Skipping the indexing build. `);
+      return res.status(200).json({ success: true, message: "Index already exists" });
+    }
+
     // Get the markdown content
     console.log("Fetching markdown from Supabase...");
     const { data, error } = await supabase
@@ -86,9 +98,8 @@ export default async function setup_rag(
           const embedding = Array.from(output.data);
           
           processedDocs.push({
-            // Borramos el 'id' para que Supabase lo auto-genere (1, 2, 3...)
-            content: doc.pageContent, // ⬅️ CAMBIO CLAVE: se llama 'content'
-            metadata: { chunk: i },   // ⬅️ Guardamos el número de trozo por si acaso
+            content: doc.pageContent, 
+            metadata: { chunk: i },   
             embedding: embedding,
           });
         } catch (chunkError) {
