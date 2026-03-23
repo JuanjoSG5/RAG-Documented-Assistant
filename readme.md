@@ -22,17 +22,21 @@ The goal of this application is to demonstrate a complete AI data pipeline: from
 The pipeline is designed to be efficient and modular:
 
 ```mermaid
-   graph TD;
-    A[User Input / URL] -->|Firecrawl API| B(Document Ingestion & Scraping)
+  graph TD;
+    A[User Input / URL] -->|Jina Reader API| B(Document Ingestion)
     B -->|LangChain.js| C(Text Splitter / Chunking)
     C -->|Transformers.js / Xenova| D(Local Embedding Generation)
     D -->|pgvector| E[(Supabase Vector Store)]
     
     F[User Question] --> G(Generate Query Embedding)
     G -->|Similarity Search| E
-    E -->|Top Context| H(Prompt Injection)
+    E -->|Context| H(Prompt Injection)
+    
+    K[(Chat History)] <-->|Sliding Window| H
+    
     H -->|OpenRouter / Gemini| I[LLM Response]
     I --> J[Next.js Frontend]
+    I -->|Save Message| K
 ```
 
 ## Tech Stack
@@ -48,9 +52,10 @@ The pipeline is designed to be efficient and modular:
 
 When building this MVP, I focused on optimizing for cost, data quality, and privacy:
 
-- **Handling Dynamic Content:** Traditional scrapers (Puppeteer/Cheerio) return messy HTML and struggle with Single Page Applications. I implemented **Firecrawl** because it easily handles JS-heavy sites and outputs clean Markdown, which drastically improves the LLM's reading comprehension.
-- **Local vs. API Embeddings:** Instead of relying on paid APIs (like OpenAI's `text-embedding-ada-002`), I integrated `@xenova/transformers` to generate embeddings locally using ONNX. **Trade-off:** It requires a bit more processing power on the server/client, but it completely eliminates embedding API costs and reduces network latency during ingestion.
-- **BYOD (Bring Your Own Database):** To avoid the complexity and cost of managing a multi-tenant vector database, the app is designed so users can connect their own Supabase instance. This ensures user data privacy while keeping the application lightweight.
+- **Handling Dynamic Content:** Switched from Firecrawl to Jina Reader. While Firecrawl is powerful, Jina provides more tokens to translate HTML to Markdown, while keeping it structured for LLM performance. 
+- **Local vs. API Embeddings:** Instead of downloading thousands of vectors into the Node.js runtime (which caused memory pressure), the system delegates the **Cosine Similarity** math directly to PostgreSQL using pgvector. 
+- **Conversation Memory (Sliding Window):** Implemented a persistent chat history in Supabase *(Currently it is set to 6 messages but it can be changed)*. The system retrieves the last N messages to provide context for follow-up questions, allowing for a natural conversation flow without exceeding the LLM's context window.
+- **Latency & LLM Inference:** Currently, the chat response time is tied to the full completion of the LLM generation (avg. 10-20s). While the Vector Search in Supabase is sub-millisecond, the end to end latency is dominated by the remote inference. For this MVP, I prioritized a simple Request-Response architecture over the complexity of WebSockets or Server-Sent Events (SSE)
 
 
 ## Getting Started
@@ -93,6 +98,13 @@ create table articles (
   created_at timestamp with time zone default timezone('utc'::text, now())
 );
 
+create table chat_history (
+  id bigserial primary key,
+  role text not null, 
+  content text not null,
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
 -- Create a function to search for documents
 create or replace function match_documents (
   query_embedding vector(384),
@@ -125,3 +137,9 @@ npm install
 npm run dev
 ```
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+### 5. Roadmap
+
+- [ ] **Streaming Responses:** Implement Server-Sent Events (SSE) or the Vercel AI SDK to stream the LLM response word-by-word, significantly improving the perceived latency and User Experience (UX).
+- [ ] **UI/UX Decoupling:** Refactor the interface into dedicated routes (e.g., `/ingest` and `/chat`) to separate the knowledge management from the interaction layer, providing a cleaner, distraction-free user experience.
+- [ ] **Multi-Context Workspaces:** Implement session management to allow multiple isolated chats. This will enable users to switch between different knowledge bases (e.g., a Python-focused assistant vs. a Java-focused one) without context contamination.
