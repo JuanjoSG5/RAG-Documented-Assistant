@@ -140,6 +140,6 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ### 5. Roadmap
 
-- [ ] **Streaming Responses:** Implement Server-Sent Events (SSE) or the Vercel AI SDK to stream the LLM response word-by-word, significantly improving the perceived latency and User Experience (UX).
+- [X] **Streaming Responses:** Implement Server-Sent Events (SSE) or the Vercel AI SDK to stream the LLM response word-by-word, significantly improving the perceived latency and User Experience (UX).
 - [ ] **UI/UX Decoupling:** Refactor the interface into dedicated routes (e.g., `/ingest` and `/chat`) to separate the knowledge management from the interaction layer, providing a cleaner, distraction-free user experience.
 - [ ] **Multi-Context Workspaces:** Implement session management to allow multiple isolated chats. This will enable users to switch between different knowledge bases (e.g., a Python-focused assistant vs. a Java-focused one) without context contamination.

@@ -29,12 +29,9 @@ const Chatbot = () => {
   }, []);
 
   const handleSend = async () => {
-
-    // check the if there is any input and if the setup has finished
     if (!input.trim() || !isSetupComplete) return;
 
-    const newMessages = [...messages, { role: "user", content: input }];
-    setMessages(newMessages);
+    setMessages((prev) => [...prev, { role: "user", content: input }]);
     setInput("");
     setLoading(true);
 
@@ -44,32 +41,74 @@ const Chatbot = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: input }),
       });
-      const data = await res.json();
 
-      if (data.reply) {
-        setMessages([
-          ...newMessages, 
-          {
-            role: data.reply.role || "assistant",
-            content: data.reply.content || String(data.reply),
-          }]);
-      } else {
-        setMessages([
-          ...newMessages,
-          {
-            role: "assistant",
-            content: "Sorry, I couldn't process your request.",
-          },
-        ]);
+      if (!res.ok) throw new Error("Web Error");
+      if (!res.body) throw new Error("No body");
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let buffer = "";
+      let responseFinished = false;
+      let isFirstRealChunk = true;
+
+      while (!responseFinished) {
+        const { value, done } = await reader.read();
+        responseFinished = done;
+
+        if (value) {
+          buffer += decoder.decode(value, { stream: true });
+          const chunks = buffer.split("\n\n");
+          buffer = chunks.pop() || "";
+
+          for (const chunk of chunks) {
+            const dataStr = chunk.replace(/^data: /, "").trim();
+            if (!dataStr) continue;
+
+            try {
+              const parsedData = JSON.parse(dataStr);
+
+              // Solo hacemos cosas si el texto NO está vacío
+              if (parsedData.text && parsedData.text !== "") {
+                
+                // Si es la primera palabra real que llega...
+                if (isFirstRealChunk) {
+                   setLoading(false); // Apagamos el "Thinking..."
+                   // Creamos la burbuja de la IA con esta primera palabra
+                   setMessages((prev) =>[...prev, { role: "assistant", content: parsedData.text }]);
+                   isFirstRealChunk = false;
+                } else {
+                   // Si ya existía la burbuja, le sumamos las siguientes palabras
+                   setMessages((prevMessages) => {
+                     const updatedMessages =[...prevMessages];
+                     const lastIndex = updatedMessages.length - 1;
+                     updatedMessages[lastIndex] = {
+                       ...updatedMessages[lastIndex],
+                       content: updatedMessages[lastIndex].content + parsedData.text
+                     };
+                     return updatedMessages;
+                   });
+                }
+              }
+            } catch (e) {
+              // Ignore broken JSON
+            }
+          }
+        }
       }
+      
+      // In case the stream is empty
+      if (isFirstRealChunk) {
+          setLoading(false);
+          setMessages((prev) =>[...prev, { role: "assistant", content: "Lo siento, el servidor no ha respondido." }]);
+      }
+
     } catch (err) {
       console.error("Error fetching reply:", err);
-      setMessages([
-        ...newMessages,
-        { role: "assistant", content: "An error occurred. Please try again." },
+      setLoading(false); 
+      setMessages((prev) =>[
+        ...prev,
+        { role: "assistant", content: "Ocurrió un error. Por favor, inténtalo de nuevo." },
       ]);
-    } finally {
-      setLoading(false);
     }
   };
 

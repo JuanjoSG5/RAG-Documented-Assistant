@@ -4,6 +4,7 @@ import { supabase } from "@/src/utils/supabase";
 import { ChatOpenAI } from '@langchain/openai';
 import { PromptTemplate } from "@langchain/core/prompts";
 import { StringOutputParser } from "@langchain/core/output_parsers";
+import Stream from "node:stream";
 
 
 const HISTORY_LIMIT = 6; 
@@ -74,6 +75,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // If you are going to use paid models you can uncomment the line below to set a token limit,
       // since I am using a free model for testing I will leave this here
       // maxTokens: 500,
+      streaming: true,
       configuration: { 
         baseURL: "https://openrouter.ai/api/v1",
         defaultHeaders: {
@@ -85,24 +87,48 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const chain = promptTemplate.pipe(model).pipe(new StringOutputParser());
 
-    // We send the message to the LLM
-    const responseText = await chain.invoke({
-      question: question,
-      context: contextText,
-      history: sortedHistory
-    });
+    // Headers needed to keep the stream alive
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
 
-    await supabase.from('chat_history').insert([
-      { role: 'user', content: question },
-      { role: 'assistant', content: responseText}
-    ])
+    let streamedResponse = ""; 
 
-    res.status(200).json({ 
-      reply: { role: "assistant", content: responseText } 
-    });
+    try {
+      // We send the message to the LLM
+      const stream = await chain.stream({
+        question: question,
+        context: contextText,
+        history: sortedHistory
+      });
 
+      for await (const chunk of stream ) {
+        streamedResponse += chunk; 
+
+        res.write(`data: ${JSON.stringify({ text: chunk })}\n\n`)
+
+        // Here I force node to send the stream whenever it changes
+        if ((res as any).flush) {
+          (res as any).flush();
+        }
+      }
+      await supabase.from('chat_history').insert([
+        { role: 'user', content: question },
+        { role: 'assistant', content: streamedResponse}
+      ]);
+
+      res.end();
+    } catch (streamError: any) {
+      console.error("Stream error:", streamError);
+      res.write(`data: ${JSON.stringify({ error: "Error generando la respuesta" })}\n\n`);
+      res.end();
+    }
   } catch (error: any) {
     console.error("Error in chat API:", error);
-    res.status(500).json({ error: error.message });
+     if (!res.headersSent) {
+      res.status(500).json({ error: error.message });
+    } else {
+      res.end();
+    }
   }
 }
