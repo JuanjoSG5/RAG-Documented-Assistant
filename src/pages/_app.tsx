@@ -1,9 +1,10 @@
-import React from 'react'
-import Chatbot from '@/src/components/chatbot';
-import ScraperForm from '@/src/components/scrapForm';
-import type { AppProps } from 'next/app';
 import '../app/global.css'
+import { ThemeProvider } from 'next-themes'
 
-export default function MyApp({ Component, pageProps }: AppProps) {
-  return <Component {...pageProps} />
+export default function App({ Component, pageProps }) {
+  return (
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <Component {...pageProps} />
+    </ThemeProvider>
+  );
 }
