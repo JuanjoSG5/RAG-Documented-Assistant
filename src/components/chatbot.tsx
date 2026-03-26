@@ -26,7 +26,7 @@ const Chatbot = () => {
     };
 
     initializeRag();
-  }, []);
+  },[]);
 
   const handleSend = async () => {
     if (!input.trim() || !isSetupComplete) return;
@@ -67,17 +67,12 @@ const Chatbot = () => {
             try {
               const parsedData = JSON.parse(dataStr);
 
-              // Solo hacemos cosas si el texto NO está vacío
               if (parsedData.text && parsedData.text !== "") {
-                
-                // Si es la primera palabra real que llega...
                 if (isFirstRealChunk) {
-                   setLoading(false); // Apagamos el "Thinking..."
-                   // Creamos la burbuja de la IA con esta primera palabra
+                   setLoading(false); 
                    setMessages((prev) =>[...prev, { role: "assistant", content: parsedData.text }]);
                    isFirstRealChunk = false;
                 } else {
-                   // Si ya existía la burbuja, le sumamos las siguientes palabras
                    setMessages((prevMessages) => {
                      const updatedMessages =[...prevMessages];
                      const lastIndex = updatedMessages.length - 1;
@@ -90,13 +85,12 @@ const Chatbot = () => {
                 }
               }
             } catch (e) {
-              // Ignore broken JSON
+              console.log(e)
             }
           }
         }
       }
       
-      // In case the stream is empty
       if (isFirstRealChunk) {
           setLoading(false);
           setMessages((prev) =>[...prev, { role: "assistant", content: "Lo siento, el servidor no ha respondido." }]);
@@ -113,9 +107,9 @@ const Chatbot = () => {
   };
 
    return (
-    <div className="flex flex-col bg-white border border-slate-200 rounded-2xl shadow-sm h-[600px] overflow-hidden">
-      {/* Header del Chat */}
-      <div className="bg-slate-900 px-6 py-4 border-b border-slate-200">
+    <div className="flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm h-[600px] overflow-hidden transition-colors duration-300">
+      
+      <div className="bg-slate-900 dark:bg-slate-950 px-6 py-4 border-b border-slate-200 dark:border-slate-800 transition-colors duration-300">
         <h2 className="text-lg font-bold text-white flex items-center gap-2">
           <span className="relative flex h-3 w-3">
             <span className={isSetupComplete ? "animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" : "hidden"}></span>
@@ -128,13 +122,11 @@ const Chatbot = () => {
         </p>
       </div>
 
-      {/* Ventana de mensajes */}
-      <div className="flex-1 overflow-y-auto bg-slate-50 p-4">
+      <div className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900/50 p-4 transition-colors duration-300">
         <Chat messages={messages} loading={loading} />
       </div>
 
-      {/* Input */}
-      <div className="p-4 bg-white border-t border-slate-100">
+      <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 transition-colors duration-300">
         <TextBox
           input={input}
           setInput={setInput}
