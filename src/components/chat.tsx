@@ -1,4 +1,3 @@
-import React from "react";
 
 const Chat = ({ messages, loading }) => {
   return (
@@ -10,18 +9,15 @@ const Chat = ({ messages, loading }) => {
             key={idx}
             className={`p-4 rounded-2xl max-w-[85%] text-sm md:text-base shadow-sm transition-colors duration-300 ${
               msg.role === "user"
-                // 👤 Bubuija del Usuario (Azul en ambos modos)
                 ? "bg-blue-600 text-white self-end rounded-br-none"
-                // 🤖 Burbuja de la IA (Gris claro de día, Pizarra oscuro de noche)
                 : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 self-start rounded-bl-none"
             }`}
           >
-            {/* Si la respuesta tiene saltos de línea, esto los respeta */}
             <div className=" whitespace-pre-wrap">{msg.content}</div>
           </div>
         ))}
         
-      {/* ⏳ Animación de Thinking... (3 puntitos saltando) */}
+      {/* Thinking animation */}
       {loading && (
         <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 self-start p-4 rounded-2xl rounded-bl-none max-w-[85%] shadow-sm flex items-center gap-2 h-12">
           <span className="w-2.5 h-2.5 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce"></span>

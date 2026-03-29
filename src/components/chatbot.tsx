@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import Chat from "@/src/components/chat";
 import TextBox from "@/src/components/textBox";
